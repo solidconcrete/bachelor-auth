@@ -38,11 +38,10 @@ public class AuthController {
             return jwtService.refreshToken(refreshToken);
         } catch (ExpiredJwtException expired) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            log.info("catched exception");
             return "Jwt Expired";
         } catch (Exception e) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            log.info("catched exception");
+            log.info(e);
             return "bad refresh token";
         }
     }

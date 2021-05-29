@@ -17,7 +17,6 @@ import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
-import java.net.URLEncoder;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
@@ -59,6 +58,7 @@ public class JwtServiceImpl implements JwtService {
                 .setExpiration(new Date(System.currentTimeMillis() + Long.parseLong(refreshExpiration) * 1000))
                 .claim("roles", userData.getRoles())
                 .compact();
+//        String token = encryptRefreshToken(jwtToken);
         return encryptRefreshToken(jwtToken);
     }
 
@@ -66,14 +66,16 @@ public class JwtServiceImpl implements JwtService {
     public String encryptRefreshToken(String token) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
         Cipher cipher = Cipher.getInstance("AES");
         cipher.init(Cipher.ENCRYPT_MODE, secretKey);
-        return URLEncoder.encode(Base64.getEncoder().encodeToString(cipher.doFinal(token.getBytes())));
+        byte[] tokenBytes = cipher.doFinal(token.getBytes());
+        return Base64.getEncoder().encodeToString(tokenBytes);
     }
 
     @Override
     public String decryptRefreshToken(String token) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
         Cipher cipher = Cipher.getInstance("AES");
         cipher.init(Cipher.DECRYPT_MODE, secretKey);
-        return new String(cipher.doFinal(Base64.getDecoder().decode(token)));
+        byte[] plainText = cipher.doFinal(Base64.getDecoder().decode(token));
+        return new String(plainText);
     }
 
     @Override
@@ -86,9 +88,14 @@ public class JwtServiceImpl implements JwtService {
         Jwt<?, ?> jwt = parser.parse(refreshToken);
         Claims claims = (Claims) jwt.getBody();
 
-        ArrayList<String> authorities = claims.get("authorities", ArrayList.class);
+        ArrayList authoritiesList = claims.get("roles", ArrayList.class);
+        String[] authoritiesArray = (String[]) authoritiesList.toArray(new String[0]);
         String username = claims.getSubject();
+        UserData userData = new UserData();
+        userData.setRoles(authoritiesArray);
+        userData.setUsername(username);
 
-        return null;
+        return generateAccessToken(userData);
+
     }
 }
